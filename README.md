@@ -5,7 +5,7 @@ Data analysis of Bicycles sales and Orders
 The Bicycle Sales Analysis project aims to provide insightful data analysis for a bicycle retail business. Using SQL queries, this project explores various aspects of the business, including customer demographics, product performance, store operations, and sales trends. By leveraging a well-structured relational database, the project delivers actionable insights to optimize business strategies and improve decision-making.
 
 # Tools & Library Used
-[<img src="./Code_outputs/mysql_logo.png" alt="myql-logo" width="100"/>](https://www.mysql.com/) &nbsp;
+[<img src="IMAGES/mysql_img.png" alt="myql-logo" width="100"/>](https://www.mysql.com/) &nbsp;
 
 # Project Result
 
