@@ -1,0 +1,302 @@
+-- 1.	List all bike brands available in the database.
+
+SELECT * FROM BRANDS;
+
+-- 2.	Retrieve all customers who live in a specific state (e.g., "NY").
+SELECT FIRST_NAME,LAST_NAME FROM CUSTOMERS
+WHERE STATE='NY';
+
+
+-- 3.	Find all categories of bicycles where the category name contains "Bikes".
+
+SELECT * FROM CATEGORIES
+WHERE CATEGORY_NAME LIKE '%Bikes%';
+
+
+-- 4.	Show the top 5 customers based on their zip_code.
+
+SELECT FIRST_NAME,LAST_NAME
+FROM customers
+ORDER BY zip_code DESC
+LIMIT 5;
+
+-- 5.	List all customers who have purchased a specific brand of bicycle.(e.g., "HELLER")
+
+SELECT C.FIRST_NAME,C.LAST_NAME,P.PRODUCT_NAME,B.BRAND_NAME
+		FROM CUSTOMERS AS C
+				LEFT JOIN ORDERS AS O
+		ON C.CUSTOMER_ID=O.CUSTOMER_ID
+				LEFT JOIN ORDER_ITEMS AS OI
+		ON O.ORDER_ID=OI.ORDER_ID
+				LEFT JOIN PRODUCTS AS P
+		ON OI.PRODUCT_ID=P.PRODUCT_ID
+				LEFT JOIN BRANDS AS B
+		ON P.BRAND_ID=B.BRAND_ID
+		WHERE BRAND_NAME='HELLER';
+    
+    
+-- 6.	Retrieve all bike categories associated with a specific brand.(e.g., "Electra")
+SELECT 
+		CAT.CATEGORY_NAME,B.BRAND_NAME
+FROM
+		CATEGORIES AS CAT
+				LEFT JOIN PRODUCTS AS P
+		ON CAT.CATEGORY_ID=P.CATEGORY_ID
+				LEFT JOIN BRANDS AS B
+		ON P.BRAND_ID=B.BRAND_ID
+WHERE BRAND_NAME='Electra'
+GROUP BY CATEGORY_NAME;
+
+
+-- 7.	Show the customer names along with the names of the bike categories they have purchased
+
+SELECT C.FIRST_NAME,C.LAST_NAME,P.PRODUCT_NAME,CAT.CATEGORY_NAME
+		FROM CUSTOMERS AS C
+				LEFT JOIN ORDERS AS O
+		ON C.CUSTOMER_ID=O.CUSTOMER_ID
+				LEFT JOIN ORDER_ITEMS AS OI
+		ON O.ORDER_ID=OI.ORDER_ID
+				LEFT JOIN PRODUCTS AS P
+		ON OI.PRODUCT_ID=P.PRODUCT_ID
+				LEFT JOIN CATEGORIES AS CAT
+		ON P.CATEGORY_ID=CAT.CATEGORY_ID
+		WHERE CATEGORY_NAME LIKE '%Bikes%';
+        
+        
+        
+-- 8.	Identify bike categories that have MOST BIKE SALES.
+
+SELECT CAT.CATEGORY_NAME,COUNT(O.ORDER_ID) AS NUMBER_OF_SALES
+		FROM CATEGORIES AS CAT 
+				LEFT JOIN PRODUCTS  AS P
+		ON CAT.CATEGORY_ID=P.CATEGORY_ID
+				LEFT JOIN ORDER_ITEMS AS OI
+		ON P.PRODUCT_ID=OI.PRODUCT_ID
+				LEFT JOIN ORDERS AS O
+		ON OI.ORDER_ID=O.ORDER_ID
+				LEFT JOIN CUSTOMERS AS C
+		ON O.CUSTOMER_ID=C.CUSTOMER_ID
+		GROUP BY CAT.CATEGORY_NAME
+        ORDER BY NUMBER_OF_SALES DESC LIMIT 1;
+        
+        
+-- 9. list all brands along with the total number of customers who purchased bikes from those brands, ranked by popularity
+
+
+SELECT B.BRAND_NAME,COUNT(O.CUSTOMER_ID) AS `Total number of Customers`,
+ RANK() OVER (ORDER BY COUNT(O.CUSTOMER_ID) DESC) AS RANKED
+FROM BRANDS AS B
+LEFT JOIN PRODUCTS AS P
+ON B.BRAND_ID=P.BRAND_ID
+LEFT JOIN ORDER_ITEMS AS OI
+ON P.PRODUCT_ID=OI.PRODUCT_ID
+LEFT JOIN ORDERS AS O
+ON OI.ORDER_ID=O.ORDER_ID
+GROUP BY B.BRAND_NAME;
+
+
+-- 10.	Find customers who share the same zip_code as the most frequently occurring zip_code.s
+
+SELECT CONCAT(C.FIRST_NAME," ",C.LAST_NAME) AS CUSTOMER_NAME,C.ZIP_CODE
+FROM CUSTOMERS AS C
+WHERE ZIP_CODE=(SELECT ZIP_CODE FROM CUSTOMERS
+					GROUP BY ZIP_CODE
+                    ORDER BY COUNT(ZIP_CODE) DESC LIMIT 1);
+
+
+
+
+-- 11.	List all customers who have purchased bikes from more than 3 different brands.
+
+SELECT CONCAT(C.FIRST_NAME," ",C.LAST_NAME) AS FULL_NAME,COUNT(B.BRAND_ID) AS NUMBER_OF_BRANDS_BIKE_PURCHASE
+FROM CUSTOMERS AS C
+LEFT JOIN ORDERS AS O
+ON C.CUSTOMER_ID=O.CUSTOMER_ID
+LEFT JOIN ORDER_ITEMS AS OI
+ON O.ORDER_ID=OI.ORDER_ID
+LEFT JOIN PRODUCTS AS P
+ON OI.PRODUCT_ID=P.PRODUCT_ID
+LEFT JOIN BRANDS AS B
+ON P.BRAND_ID=B.BRAND_ID
+GROUP BY FULL_NAME
+HAVING NUMBER_OF_BRANDS_BIKE_PURCHASE>3
+ORDER BY NUMBER_OF_BRANDS_BIKE_PURCHASE DESC;
+
+
+
+-- 12. Top 5 product that generate highest revenue
+SELECT P.PRODUCT_NAME,ROUND(SUM((OI.QUANTITY*OI.LIST_PRICE)/OI.DISCOUNT),2) AS REVENUE
+FROM PRODUCTS AS P
+LEFT JOIN ORDER_ITEMS AS OI
+ON P.PRODUCT_ID=OI.PRODUCT_ID
+GROUP BY P.PRODUCT_NAME
+ORDER BY REVENUE DESC LIMIT 5;
+
+
+-- 13. IDENTY WHY WHICH STORE GENERATEST MAXIMUM REVENUE
+SELECT S.STORE_NAME,ROUND(SUM((OI.QUANTITY*OI.LIST_PRICE)/OI.DISCOUNT),2) AS REVENUE
+FROM STORES AS S
+LEFT JOIN ORDERS AS O
+ON S.STORE_ID=O.STORE_ID
+LEFT JOIN ORDER_ITEMS AS OI
+ON O.ORDER_ID=OI.ORDER_ID
+GROUP BY S.STORE_NAME
+ORDER BY REVENUE DESC LIMIT 1;
+
+
+-- 14. List all customers who have placed orders, showing their full names, order dates, and the stores where the orders were placed.
+
+SELECT CONCAT(C.FIRST_NAME," ",C.LAST_NAME) AS FULL_NAME,O.ORDER_DATE,S.STORE_NAME
+FROM CUSTOMERS AS C
+LEFT JOIN ORDERS AS O
+ON C.CUSTOMER_ID=O.CUSTOMER_ID
+LEFT JOIN STORES AS S
+ON O.STORE_ID=S.STORE_ID;
+
+
+
+-- 15. Find the total quantity sold for each product, showing the product name, total quantity, and revenue generated.
+
+SELECT P.PRODUCT_NAME,SUM(OI.QUANTITY) AS TOTAL_QUANTITY,ROUND(SUM((OI.QUANTITY*OI.LIST_PRICE)/OI.DISCOUNT),2) AS REVENUE
+FROM PRODUCTS AS P 
+LEFT JOIN ORDER_ITEMS AS OI
+ON P.PRODUCT_ID=OI.PRODUCT_ID
+GROUP BY P.PRODUCT_NAME
+ORDER BY TOTAL_QUANTITY DESC;
+
+
+-- 16. Find all products that are in stock but have not been sold in any order.
+
+SELECT P.PRODUCT_NAME,SUM(S.QUANTITY) AS STOCK_QUANTITY,SUM(OI.QUANTITY) AS TOTAL_QUANTITY_SOLD
+FROM PRODUCTS AS P
+LEFT JOIN STOCKS AS S
+ON P.PRODUCT_ID=S.PRODUCT_ID
+LEFT JOIN ORDER_ITEMS AS OI
+ON P.PRODUCT_ID=OI.PRODUCT_ID
+GROUP BY PRODUCT_NAME
+HAVING TOTAL_QUANTITY_SOLD IS NULL AND STOCK_QUANTITY IS NOT NULL;
+
+
+-- 17. List all customers who have purchased products from multiple stores.
+
+SELECT CONCAT(C.FIRST_NAME," ",C.LAST_NAME) AS FULL_NAME
+FROM CUSTOMERS AS C
+LEFT JOIN ORDERS AS O
+ON C.CUSTOMER_ID=O.CUSTOMER_ID
+LEFT JOIN STORES AS S
+ON O.STORE_ID=S.STORE_ID
+GROUP BY FULL_NAME
+HAVING COUNT(S.STORE_ID)>1;
+
+
+-- 18. Retrieve all orders where the shipped date is after the required date.
+
+SELECT O.ORDER_ID,CONCAT(C.FIRST_NAME," ",C.LAST_NAME) AS FULL_NAME,P.PRODUCT_NAME,O.required_date,O.shipped_date
+FROM CUSTOMERS AS C
+LEFT JOIN ORDERS AS O
+ON C.CUSTOMER_ID=O.CUSTOMER_ID
+LEFT JOIN ORDER_ITEMS AS OI
+ON O.ORDER_ID=OI.ORDER_ID
+LEFT JOIN PRODUCTS AS P
+ON OI.PRODUCT_ID=P.PRODUCT_ID
+WHERE O.required_date < O.shipped_date;
+
+-- 19. Identify the staff member who has processed the highest number of orders.
+
+
+SELECT CONCAT(S.FIRST_NAME," ",S.LAST_NAME) AS FULL_NAME,COUNT(O.ORDER_ID) AS TOTAL_ORDERS_PROCESSED
+FROM STAFFS AS S
+LEFT JOIN ORDERS AS O
+ON S.STAFF_ID=O.STAFF_ID
+GROUP BY FULL_NAME
+ORDER BY TOTAL_ORDERS_PROCESSED DESC LIMIT 1;
+
+
+-- 20. Retrieve the current stock of all products in each store, showing the product name, store name, and stock quantity.
+
+SELECT P.PRODUCT_NAME,STO.STORE_NAME,SUM(S.QUANTITY) AS STOCK_QUANTITY
+FROM  PRODUCTS AS P
+LEFT JOIN STOCKS AS S
+ON P.PRODUCT_ID=S.PRODUCT_ID
+LEFT JOIN STORES AS STO
+ON S.STORE_ID=STO.STORE_ID
+GROUP BY P.PRODUCT_NAME,STO.STORE_NAME;
+
+
+-- 21. List the top 5 best-selling products across all stores.
+
+SELECT 
+    p.product_name,
+    SUM(o.quantity) AS total_quantity_sold
+FROM 
+    products p
+JOIN 
+    order_items o ON p.product_id = o.product_id
+GROUP BY 
+    p.product_id, p.product_name
+ORDER BY 
+    total_quantity_sold DESC
+LIMIT 5;
+
+
+-- 22. Find all orders that include products from a specific category (e.g., "Road Bikes").
+
+SELECT 
+    o.order_id,
+    o.order_date,
+    p.product_name,
+    c.category_name
+FROM 
+    orders o
+JOIN 
+    order_items oi ON o.order_id = oi.order_id
+JOIN 
+    products p ON oi.product_id = p.product_id
+JOIN 
+    categories c ON p.category_id = c.category_id
+WHERE 
+    c.category_name = 'Road Bikes';
+
+
+
+-- 23. Identify products that have less than 10 units in stock across all stores
+
+
+SELECT PRODUCT_NAME, STOCK_QUANTITY
+FROM (
+    SELECT P.PRODUCT_NAME, SUM(S.QUANTITY) AS STOCK_QUANTITY
+    FROM PRODUCTS AS P
+    LEFT JOIN STOCKS AS S
+    ON P.PRODUCT_ID = S.PRODUCT_ID
+    GROUP BY P.PRODUCT_NAME
+) AS PRODUCT_STOCKS
+WHERE STOCK_QUANTITY <= 10;
+
+
+-- 24. List brands whose products have collectively generated less than $6,0000 in sales.
+
+SELECT BRAND_NAME, REVENUE
+FROM (
+    SELECT B.BRAND_NAME, 
+           ROUND(SUM((OI.QUANTITY * OI.LIST_PRICE) / OI.DISCOUNT), 2) AS REVENUE
+    FROM BRANDS AS B
+    LEFT JOIN PRODUCTS AS P ON B.BRAND_ID = P.BRAND_ID
+    LEFT JOIN ORDER_ITEMS AS OI ON P.PRODUCT_ID = OI.PRODUCT_ID
+    GROUP BY B.BRAND_NAME
+) AS BRAND_REVENUE
+WHERE REVENUE <= 60000;
+
+
+-- 25. Retrieve all orders that have not been shipped.
+
+SELECT O.ORDER_ID,P.PRODUCT_NAME,O.REQUIRED_DATE,O.SHIPPED_DATE
+FROM ORDERS AS O
+LEFT JOIN ORDER_ITEMS AS OI
+ON O.ORDER_ID=OI.ORDER_ID
+LEFT JOIN PRODUCTS AS P
+ON OI.PRODUCT_ID=P.PRODUCT_ID
+WHERE O.SHIPPED_DATE IS NULL;
+
+
+
+
